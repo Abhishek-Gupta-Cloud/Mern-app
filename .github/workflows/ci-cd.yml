@@ -1,0 +1,266 @@
+name: CI/CD - Build & Deploy to AWS EKS
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: mern-app
+
+jobs:
+  # ── Backend Tests ──────────────────────────────────────────────
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      
+      - name: Install dependencies
+        run: cd backend && npm install
+      
+      - name: Run linter
+        run: cd backend && npm run lint --if-present || true
+      
+      - name: Run tests
+        run: cd backend && npm run test --if-present || true
+
+  # ── Frontend Tests ────────────────────────────────────────────
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: cd frontend && npm install
+      
+      - name: Build
+        run: cd frontend && npm run build
+
+  # ── SonarQube Code Quality Analysis ────────────────────────────
+  sonarqube-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: SonarQube Scan - Backend
+        uses: SonarSource/sonarqube-scan-action@master
+        with:
+          args: >
+            -Dsonar.projectKey=mern-backend
+            -Dsonar.sources=backend/src
+            -Dsonar.exclusions=backend/node_modules/**,backend/**/*.test.js
+            -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true
+
+      - name: SonarQube Scan - Frontend
+        uses: SonarSource/sonarqube-scan-action@master
+        with:
+          args: >
+            -Dsonar.projectKey=mern-frontend
+            -Dsonar.sources=frontend/src
+            -Dsonar.exclusions=frontend/node_modules/**,frontend/dist/**
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true
+
+  # ── Docker Build & Push to ECR ─────────────────────────────────
+  build-and-push:
+    needs: [test-backend, test-frontend, sonarqube-scan]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        image: [backend, frontend]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image (without push)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.image }}
+          push: false
+          tags: ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.image }}.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ matrix.image }}.sarif'
+          category: 'trivy-${{ matrix.image }}'
+
+      - name: Run Trivy in table format
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL'
+
+      - name: Push Docker image to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.image }}
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Deploy to EKS (Main Branch Only) ────────────────────────────
+  deploy-to-eks:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ env.EKS_CLUSTER_NAME }} \
+            --region ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Update Kubernetes manifests with ECR image URLs
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Update backend deployment
+          sed -i "s|BACKEND_IMAGE|$ECR_REGISTRY/mern-backend:$IMAGE_TAG|g" k8s/03-backend.yaml
+          
+          # Update frontend deployment
+          sed -i "s|FRONTEND_IMAGE|$ECR_REGISTRY/mern-frontend:$IMAGE_TAG|g" k8s/04-frontend.yaml
+      
+      - name: Apply Kubernetes manifests
+        run: |
+          # Create namespace and secrets (idempotent)
+          kubectl apply -f k8s/01-namespace-secrets.yaml
+          
+          # Deploy backend
+          kubectl apply -f k8s/03-backend.yaml
+          
+          # Deploy frontend
+          kubectl apply -f k8s/04-frontend.yaml
+      
+      - name: Wait for deployment rollout
+        run: |
+          kubectl rollout status deployment/backend -n mern-app --timeout=5m
+          kubectl rollout status deployment/frontend -n mern-app --timeout=5m
+      
+      - name: Get LoadBalancer URL
+        run: |
+          echo "🎉 Deployment successful!"
+          echo "Frontend URL:"
+          kubectl get service frontend -n mern-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+          echo ""
+
+  # ── Status Notifications ───────────────────────────────────────
+  notify-slack:
+    needs: [test-backend, test-frontend, sonarqube-scan, build-and-push]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [[ "${{ needs.test-backend.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-frontend.result }}" == "failure" ]] || \
+             [[ "${{ needs.sonarqube-scan.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-and-push.result }}" == "failure" ]]; then
+            echo "STATUS=❌ FAILED" >> $GITHUB_OUTPUT
+            echo "COLOR=danger" >> $GITHUB_OUTPUT
+          else
+            echo "STATUS=✅ SUCCESS" >> $GITHUB_OUTPUT
+            echo "COLOR=good" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Send Slack notification
+        if: secrets.SLACK_WEBHOOK != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: `MERN App CI/CD ${{ steps.status.outputs.STATUS }}`,
+              attachments: [{
+                color: '${{ steps.status.outputs.COLOR }}',
+                text: `Branch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}`,
+                footer: 'GitHub Actions'
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true

@@ -1,0 +1,81 @@
+# ===================================================================
+# MINIMUM COST CONFIGURATION (~$150/month)
+# ===================================================================
+# For PRODUCTION with HA, see terraform.tfvars.production.example
+# ===================================================================
+
+# Project Configuration
+project_name = "mern-app"
+environment  = "development"  # Use 'dev' for minimal cost
+
+# ===================================================================
+# COST OPTIMIZATION: Single Region (not multi-region)
+# ===================================================================
+# Multi-region costs ~$700/month
+# Single region costs ~$150/month (70% savings)
+
+primary_region   = "us-east-1"           # Only primary region
+# secondary_region = "us-west-2"         # COMMENTED OUT to save costs
+
+# VPC Configuration - Single Region
+primary_vpc_cidr   = "10.0.0.0/16"
+# secondary_vpc_cidr = "10.1.0.0/16"    # COMMENTED OUT
+
+# Kubernetes Configuration
+kubernetes_version = "1.30"
+instance_types     = ["t3.micro", "t3.small"]  # CHANGED: micro/small saves 70%
+
+# ===================================================================
+# COST OPTIMIZATION: Minimal Nodes (not 10)
+# ===================================================================
+# 10 nodes @ t3.medium = $100/month
+# 2 nodes @ t3.micro = $10/month (90% savings)
+
+primary_node_group_desired = 2      # CHANGED: 3 → 2 (minimum for HA)
+primary_node_group_min     = 2      # CHANGED: 2 → 2 (no scale down)
+primary_node_group_max     = 3      # CHANGED: 10 → 3 (limit max)
+
+# COMMENTED OUT secondary region
+# secondary_node_group_desired = 2
+# secondary_node_group_min     = 1
+# secondary_node_group_max     = 5
+
+# ===================================================================
+# COST OPTIMIZATION: Minimal Database
+# ===================================================================
+# db.t3.medium Multi-AZ = $150/month
+# db.t3.micro Single-AZ = $30/month (80% savings)
+
+db_name               = "merndb"
+db_engine             = "mongodb"        # or mysql, postgres
+db_engine_version     = "7.0"
+db_instance_class     = "db.t3.micro"    # CHANGED: medium → micro
+db_allocated_storage  = 20               # CHANGED: 100 → 20 GB (minimum)
+db_multi_az           = false             # CHANGED: true → false (saves 50%)
+
+# ===================================================================
+# COST OPTIMIZATION: No HA/DR Features
+# ===================================================================
+# Remove read replica (saves $100)
+# Remove multi-region (saves $300)
+# Keep monitoring (helps catch issues early)
+
+# Features
+enable_monitoring = true               # Keep for early issue detection
+enable_autoscaling = false             # CHANGED: false (save on scaling)
+enable_ingress     = true              # Keep for routing
+
+# Domain & DNS
+domain_name = "yourdomain.com"
+
+# Monitoring
+alarm_email = "devops@yourdomain.com"
+
+# Tags
+tags = {
+  Owner       = "DevOps"
+  CostCenter  = "Engineering"
+  Compliance  = "SOC2"
+  Application = "MERN"
+  DataTier    = "Sensitive"
+}
