@@ -92,6 +92,7 @@ module "secondary_eks" {
 
 # RDS Database in Primary Region
 module "primary_rds" {
+  count = var.db_engine == "mongodb" ? 0 : 1
   source = "./modules/rds"
 
   db_instance_identifier = "${var.project_name}-primary-db"
@@ -112,10 +113,10 @@ module "primary_rds" {
 # To disable: set secondary_region = "" in terraform.tfvars
 # Savings: $100/month when disabled
 module "secondary_rds" {
-  count = var.secondary_region != "" ? 1 : 0
+  count = var.secondary_region != "" && var.db_engine != "mongodb" ? 1 : 0
   source = "./modules/rds_replica"
 
-  source_db_identifier   = module.primary_rds.db_instance_id
+  source_db_identifier   = module.primary_rds[0].db_instance_id
   replica_identifier     = "${var.project_name}-secondary-db"
   replica_region         = var.secondary_region
   instance_class         = var.db_instance_class
