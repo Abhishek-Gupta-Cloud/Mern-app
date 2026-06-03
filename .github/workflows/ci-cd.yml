@@ -98,7 +98,19 @@ jobs:
       security-events: write
     strategy:
       matrix:
-        image: [backend, frontend]
+        service:
+          - name: auth
+            context: services/auth-service
+            repo: mern-auth
+          - name: tasks
+            context: services/tasks-service
+            repo: mern-tasks
+          - name: gateway
+            context: services/api-gateway
+            repo: mern-gateway
+          - name: frontend
+            context: frontend
+            repo: mern-frontend
     
     steps:
       - name: Checkout repository
@@ -121,9 +133,9 @@ jobs:
       - name: Build Docker image (without push)
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.image }}
+          context: ${{ matrix.service.context }}
           push: false
-          tags: ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.repo }}:${{ github.sha }}
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -131,22 +143,22 @@ jobs:
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.repo }}:${{ github.sha }}
           format: 'sarif'
-          output: 'trivy-results-${{ matrix.image }}.sarif'
+          output: 'trivy-results-${{ matrix.service.name }}.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
-          sarif_file: 'trivy-results-${{ matrix.image }}.sarif'
-          category: 'trivy-${{ matrix.image }}'
+          sarif_file: 'trivy-results-${{ matrix.service.name }}.sarif'
+          category: 'trivy-${{ matrix.service.name }}'
 
       - name: Run Trivy in table format
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.repo }}:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -155,12 +167,12 @@ jobs:
       - name: Push Docker image to ECR
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.image }}
+          context: ${{ matrix.service.context }}
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:latest
-            ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.sha }}
-            ${{ steps.login-ecr.outputs.registry }}/mern-${{ matrix.image }}:${{ github.ref_name }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.repo }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.repo }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service.repo }}:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -198,26 +210,27 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Update backend deployment
-          sed -i "s|BACKEND_IMAGE|$ECR_REGISTRY/mern-backend:$IMAGE_TAG|g" k8s/03-backend.yaml
-          
-          # Update frontend deployment
-          sed -i "s|FRONTEND_IMAGE|$ECR_REGISTRY/mern-frontend:$IMAGE_TAG|g" k8s/04-frontend.yaml
+          sed -i "s|your-docker-registry/auth-service:latest|$ECR_REGISTRY/mern-auth:$IMAGE_TAG|g" k8s/auth-service/deployment.yaml
+          sed -i "s|your-docker-registry/tasks-service:latest|$ECR_REGISTRY/mern-tasks:$IMAGE_TAG|g" k8s/tasks-service/deployment.yaml
+          sed -i "s|your-docker-registry/api-gateway:latest|$ECR_REGISTRY/mern-gateway:$IMAGE_TAG|g" k8s/api-gateway/deployment.yaml
+          sed -i "s|your-docker-registry/frontend:latest|$ECR_REGISTRY/mern-frontend:$IMAGE_TAG|g" k8s/frontend/deployment.yaml
       
       - name: Apply Kubernetes manifests
         run: |
           # Create namespace and secrets (idempotent)
           kubectl apply -f k8s/01-namespace-secrets.yaml
-          
-          # Deploy backend
-          kubectl apply -f k8s/03-backend.yaml
-          
-          # Deploy frontend
-          kubectl apply -f k8s/04-frontend.yaml
+          kubectl apply -f k8s/02-mongodb.yaml
+          kubectl apply -f k8s/auth-service/service.yaml -f k8s/auth-service/deployment.yaml
+          kubectl apply -f k8s/tasks-service/service.yaml -f k8s/tasks-service/deployment.yaml
+          kubectl apply -f k8s/api-gateway/service.yaml -f k8s/api-gateway/deployment.yaml
+          kubectl apply -f k8s/frontend/service.yaml -f k8s/frontend/deployment.yaml
+          kubectl apply -f k8s/ingress.yaml
       
       - name: Wait for deployment rollout
         run: |
-          kubectl rollout status deployment/backend -n mern-app --timeout=5m
+          kubectl rollout status deployment/auth-service -n mern-app --timeout=5m
+          kubectl rollout status deployment/tasks-service -n mern-app --timeout=5m
+          kubectl rollout status deployment/api-gateway -n mern-app --timeout=5m
           kubectl rollout status deployment/frontend -n mern-app --timeout=5m
       
       - name: Get LoadBalancer URL

@@ -39,6 +39,6 @@ exports.deleteTask = async (req, res) => {
 };
 
 exports.getStats = async (req, res) => {
-  const stats = await Task.aggregate([{ $match: { user: req.user._id } }, { $group: { _id: '$status', count: { $sum: 1 } } }]);
+  const stats = await Task.aggregate([{ $match: { user: req.user.id } }, { $group: { _id: '$status', count: { $sum: 1 } } }]);
   res.json({ stats });
 };

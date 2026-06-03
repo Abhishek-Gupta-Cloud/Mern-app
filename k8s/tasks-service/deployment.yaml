@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasks-service
+  labels:
+    app: tasks-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tasks-service
+  template:
+    metadata:
+      labels:
+        app: tasks-service
+    spec:
+      containers:
+        - name: tasks-service
+          image: your-docker-registry/tasks-service:latest
+          ports:
+            - containerPort: 5002
+          envFrom:
+            - secretRef:
+                name: app-secret
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "5002"
