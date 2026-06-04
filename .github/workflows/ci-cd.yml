@@ -25,7 +25,7 @@ jobs:
           cache-dependency-path: app/backend/package-lock.json
       
       - name: Install dependencies
-        run: cd backend && npm install
+        run: cd app/backend && npm install
       
       - name: Run linter
         run: cd app/backend && npm run lint --if-present || true
