@@ -28,10 +28,10 @@ jobs:
         run: cd backend && npm install
       
       - name: Run linter
-        run: cd backend && npm run lint --if-present || true
+        run: cd app/backend && npm run lint --if-present || true
       
       - name: Run tests
-        run: cd backend && npm run test --if-present || true
+        run: cd app/backend && npm run test --if-present || true
 
   # ── Frontend Tests ────────────────────────────────────────────
   test-frontend:
@@ -47,10 +47,10 @@ jobs:
           cache-dependency-path: app/frontend/package-lock.json
       
       - name: Install dependencies
-        run: cd frontend && npm install
+        run: cd app/frontend && npm install
       
       - name: Build
-        run: cd frontend && npm run build
+        run: cd app/frontend && npm run build
 
   # ── SonarQube Code Quality Analysis ────────────────────────────
   # sonarqube-scan:
@@ -100,13 +100,13 @@ jobs:
       matrix:
         service:
           - name: auth
-            context: ./app/services/auth-service
+            context: app/services/auth-service
             repo: mern-app-auth
           - name: tasks
-            context: ./app/services/tasks-service
+            context: app/services/tasks-service
             repo: mern-app-tasks
           - name: gateway
-            context: ./app/services/api-gateway
+            context: app/services/api-gateway
             repo: mern-app-gateway
           - name: frontend
             context: frontend
