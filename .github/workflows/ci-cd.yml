@@ -109,7 +109,7 @@ jobs:
             context: app/services/api-gateway
             repo: mern-app-gateway
           - name: frontend
-            context: frontend
+            context: app/frontend
             repo: mern-app-frontend
     
     steps:
@@ -151,11 +151,11 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
+        if: always() && hashFiles('trivy-results-*.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results-${{ matrix.service.name }}.sarif'
-          category: 'trivy-${{ matrix.service.name }}'
+          sarif_file: trivy-results-${{ matrix.service.name }}.sarif
+          category: trivy-${{ matrix.service.name }}
 
       - name: Run Trivy in table format
         uses: aquasecurity/trivy-action@master
