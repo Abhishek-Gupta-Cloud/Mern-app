@@ -1,5 +1,6 @@
 # ── Stage 1: build ───────────────────────────────────────────────
 FROM node:20-alpine AS builder
+RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
