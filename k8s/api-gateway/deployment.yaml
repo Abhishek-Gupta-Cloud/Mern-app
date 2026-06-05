@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: your-docker-registry/api-gateway:latest
+          image: shivagupta9765/mern-app-gateway
           ports:
             - containerPort: 4000
           env:

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: your-docker-registry/frontend:latest
+          image: shivagupta9765/mern-app-frontend
           ports:
             - containerPort: 80
           env:

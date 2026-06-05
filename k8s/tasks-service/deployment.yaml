@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: tasks-service
-          image: your-docker-registry/tasks-service:latest
+          image: shivagupta9765/mern-app-tasks
           ports:
             - containerPort: 5002
           envFrom:

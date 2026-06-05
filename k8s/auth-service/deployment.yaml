@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: your-docker-registry/auth-service:latest
+          image: shivagupta9765/mern-app-auth
           ports:
             - containerPort: 5001
           envFrom:
