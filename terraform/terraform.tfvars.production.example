@@ -31,13 +31,17 @@ secondary_node_group_desired = 2
 secondary_node_group_min     = 2
 secondary_node_group_max     = 5
 
-# Database Configuration - Multi-AZ + Read Replica
-db_name               = "merndb"
-db_engine             = "mongodb"
-db_engine_version     = "7.0"
-db_instance_class     = "db.t3.medium"
-db_allocated_storage  = 100
-db_multi_az           = true
+# Database Configuration - DocumentDB
+# DocumentDB is used for the MongoDB-compatible backend in production.
+documentdb_database_name           = "mernapp"
+documentdb_username                = "admin"
+documentdb_engine_version          = "5.0.0"
+documentdb_instance_class          = "db.r5.large"
+documentdb_instance_count          = 2
+documentdb_backup_retention_period = 7
+documentdb_preferred_backup_window = "03:00-04:00"
+documentdb_preferred_maintenance_window = "sun:04:00-sun:05:00"
+documentdb_parameter_group_family = "docdb5.0"
 
 # Features
 enable_monitoring  = true
@@ -49,6 +53,11 @@ domain_name = "yourdomain.com"
 
 # Monitoring
 alarm_email = "devops@yourdomain.com"
+enable_kubernetes_monitoring = true
+monitoring_storage_class_name = "gp3"
+grafana_persistence_size = "20Gi"
+prometheus_persistence_size = "50Gi"
+alertmanager_persistence_size = "20Gi"
 
 # Tags
 tags = {

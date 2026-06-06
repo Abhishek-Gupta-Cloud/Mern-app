@@ -294,9 +294,9 @@ resource "aws_eks_node_group" "main" {
     max_unavailable_percentage = 25
   }
 
-  vpc_config {
-    security_groups = [aws_security_group.node_group.id]
-  }
+  # vpc_config {
+  #   security_groups = [aws_security_group.node_group.id]
+  # }
 
   tags = merge(var.tags, {
     Name = "${var.cluster_name}-node-group"
@@ -351,21 +351,21 @@ resource "aws_iam_role_policy_attachment" "alb_controller_policy" {
 }
 
 # AWS Load Balancer Controller Helm Release
-provider "helm" {
-  kubernetes {
-    host                   = aws_eks_cluster.main.endpoint
-    cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
-    token                  = data.aws_eks_auth.cluster.token
-  }
-}
+# provider "helm" {
+#   kubernetes {
+#     host                   = aws_eks_cluster.main.endpoint
+#     cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
+#     token                  = data.aws_eks_auth.cluster.token
+#   }
+# }
 
-provider "kubernetes" {
-  host                   = aws_eks_cluster.main.endpoint
-  cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
-  token                  = data.aws_eks_auth.cluster.token
-}
+# provider "kubernetes" {
+#   host                   = aws_eks_cluster.main.endpoint
+#   cluster_ca_certificate = base64decode(aws_eks_cluster.main.certificate_authority[0].data)
+#   token                  = data.aws_eks_auth.cluster.token
+# }
 
-data "aws_eks_auth" "cluster" {
+data "aws_eks_cluster_auth" "cluster" {
   name = aws_eks_cluster.main.name
 }
 
@@ -377,25 +377,25 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
 
-  set {
-    name  = "clusterName"
-    value = aws_eks_cluster.main.name
-  }
+  # set {
+  #   name  = "clusterName"
+  #   value = aws_eks_cluster.main.name
+  # }
 
-  set {
-    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = aws_iam_role.alb_controller.arn
-  }
+  # set {
+  #   name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+  #   value = aws_iam_role.alb_controller.arn
+  # }
 
-  set {
-    name  = "serviceAccount.create"
-    value = "true"
-  }
+  # set {
+  #   name  = "serviceAccount.create"
+  #   value = "true"
+  # }
 
-  set {
-    name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
-  }
+  # set {
+  #   name  = "serviceAccount.name"
+  #   value = "aws-load-balancer-controller"
+  # }
 
   depends_on = [aws_eks_node_group.main]
 }

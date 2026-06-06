@@ -50,33 +50,63 @@ output "secondary_autoscaling_group_name" {
   value       = try(module.secondary_eks[0].asg_name, "N/A - secondary region disabled")
 }
 
-# RDS Outputs
-output "primary_db_endpoint" {
-  description = "Primary database endpoint"
-  value       = module.primary_rds.db_endpoint
+# DocumentDB Outputs
+output "primary_documentdb_endpoint" {
+  description = "Primary DocumentDB cluster endpoint"
+  value       = try(module.primary_documentdb.cluster_endpoint, "N/A - primary DocumentDB not created")
   sensitive   = true
 }
 
-output "primary_db_instance_id" {
-  description = "Primary database instance ID"
-  value       = module.primary_rds.db_instance_id
+output "primary_documentdb_cluster_id" {
+  description = "Primary DocumentDB cluster identifier"
+  value       = try(module.primary_documentdb.cluster_id, "N/A - primary DocumentDB not created")
 }
 
-output "secondary_db_endpoint" {
-  description = "Secondary database endpoint (read replica - if enabled)"
-  value       = try(module.secondary_rds[0].db_endpoint, "N/A - secondary region disabled")
+output "primary_documentdb_reader_endpoint" {
+  description = "Primary DocumentDB reader endpoint"
+  value       = try(module.primary_documentdb.reader_endpoint, "N/A - primary DocumentDB not created")
   sensitive   = true
 }
 
-output "secondary_db_instance_id" {
-  description = "Secondary database instance ID (if enabled)"
-  value       = try(module.secondary_rds[0].db_instance_id, "N/A - secondary region disabled")
+output "primary_documentdb_secret_arn" {
+  description = "Secrets Manager ARN for primary DocumentDB credentials"
+  value       = try(module.primary_documentdb.secret_arn, "N/A - primary DocumentDB not created")
+  sensitive   = true
+}
+
+output "primary_documentdb_mongo_uri" {
+  description = "Primary DocumentDB MONGO_URI connection string"
+  value       = try(module.primary_documentdb.mongo_uri, "N/A - primary DocumentDB not created")
+  sensitive   = true
+}
+
+output "secondary_documentdb_endpoint" {
+  description = "Secondary DocumentDB cluster endpoint (if enabled)"
+  value       = try(module.secondary_documentdb[0].cluster_endpoint, "N/A - secondary region disabled")
+  sensitive   = true
+}
+
+output "secondary_documentdb_cluster_id" {
+  description = "Secondary DocumentDB cluster identifier (if enabled)"
+  value       = try(module.secondary_documentdb[0].cluster_id, "N/A - secondary region disabled")
+}
+
+output "secondary_documentdb_reader_endpoint" {
+  description = "Secondary DocumentDB reader endpoint (if enabled)"
+  value       = try(module.secondary_documentdb[0].reader_endpoint, "N/A - secondary region disabled")
+  sensitive   = true
+}
+
+output "secondary_documentdb_mongo_uri" {
+  description = "Secondary DocumentDB MONGO_URI connection string"
+  value       = try(module.secondary_documentdb[0].mongo_uri, "N/A - secondary region disabled")
+  sensitive   = true
 }
 
 # Route53 Outputs
 output "route53_zone_id" {
   description = "Route53 hosted zone ID"
-  value       = module.global_routing.zone_id
+  value       = try(module.global_routing[0].zone_id, "N/A - Route53 failover routing not enabled")
 }
 
 output "application_url" {
@@ -92,7 +122,7 @@ output "configure_kubectl_primary" {
 
 output "configure_kubectl_secondary" {
   description = "Command to configure kubectl for secondary cluster"
-  value       = "aws eks update-kubeconfig --region ${var.secondary_region} --name ${module.secondary_eks.cluster_name}"
+  value       = try("aws eks update-kubeconfig --region ${var.secondary_region} --name ${module.secondary_eks[0].cluster_name}", "N/A - secondary region disabled")
 }
 
 # Monitoring
@@ -104,12 +134,33 @@ output "cloudwatch_dashboard_url" {
 output "monitoring_summary" {
   description = "Monitoring configuration summary"
   value = {
-    primary_region   = var.primary_region
-    secondary_region = var.secondary_region
-    monitoring_enabled = var.enable_monitoring
-    alarms_enabled    = true
-    alarm_email      = var.alarm_email
+    primary_region                = var.primary_region
+    secondary_region              = var.secondary_region
+    monitoring_enabled            = var.enable_monitoring
+    kubernetes_monitoring_enabled = var.enable_monitoring
+    alarms_enabled                = true
+    alarm_email                   = var.alarm_email
   }
+}
+
+output "primary_grafana_url" {
+  description = "Grafana URL for the primary EKS cluster"
+  value       = try(module.primary_kube_monitoring[0].grafana_url, "N/A - primary monitoring disabled")
+}
+
+output "secondary_grafana_url" {
+  description = "Grafana URL for the secondary EKS cluster"
+  value       = try(module.secondary_kube_monitoring[0].grafana_url, "N/A - secondary cluster disabled")
+}
+
+output "primary_prometheus_url" {
+  description = "Prometheus endpoint for the primary EKS cluster"
+  value       = try(module.primary_kube_monitoring[0].prometheus_url, "N/A - primary monitoring disabled")
+}
+
+output "secondary_prometheus_url" {
+  description = "Prometheus endpoint for the secondary EKS cluster"
+  value       = try(module.secondary_kube_monitoring[0].prometheus_url, "N/A - secondary cluster disabled")
 }
 
 # Summary
@@ -123,21 +174,54 @@ output "deployment_summary" {
       endpoint = module.primary_eks.cluster_endpoint
     }
     secondary_cluster = {
-      name     = module.secondary_eks.cluster_name
+      name     = try(module.secondary_eks[0].cluster_name, "N/A - secondary region disabled")
       region   = var.secondary_region
       version  = var.kubernetes_version
-      endpoint = module.secondary_eks.cluster_endpoint
+      endpoint = try(module.secondary_eks[0].cluster_endpoint, "N/A - secondary region disabled")
     }
     database = {
-      engine  = var.db_engine
-      name    = var.db_name
-      primary = module.primary_rds.db_endpoint
-      replica = module.secondary_rds.db_endpoint
+      engine  = "DocumentDB"
+      name    = var.documentdb_database_name
+      primary = try(module.primary_documentdb.cluster_endpoint, "N/A - primary DocumentDB not created")
+      replica = try(module.secondary_documentdb[0].cluster_endpoint, "N/A - secondary region disabled")
     }
     networking = {
-      domain_name = var.domain_name
-      primary_alb = module.primary_eks.alb_dns_name
-      secondary_alb = module.secondary_eks.alb_dns_name
+      domain_name   = var.domain_name
+      primary_alb   = module.primary_eks.alb_dns_name
+      secondary_alb = try(module.secondary_eks[0].alb_dns_name, "N/A - secondary region disabled")
     }
   }
+}
+
+# ArgoCD Outputs
+output "primary_argocd_url" {
+  description = "ArgoCD UI URL for primary cluster"
+  value       = try("https://${module.primary_argocd.ingress_host}", "N/A - argocd not enabled")
+}
+
+output "primary_argocd_admin_username" {
+  description = "ArgoCD admin username for primary cluster"
+  value       = try(module.primary_argocd.admin_username, "admin")
+}
+
+output "primary_argocd_admin_password" {
+  description = "ArgoCD admin password for primary cluster"
+  value       = try(module.primary_argocd.admin_password, "")
+  sensitive    = true
+}
+
+output "secondary_argocd_url" {
+  description = "ArgoCD UI URL for secondary cluster"
+  value       = try("https://${module.secondary_argocd[0].ingress_host}", "N/A - secondary region disabled")
+}
+
+output "secondary_argocd_admin_username" {
+  description = "ArgoCD admin username for secondary cluster"
+  value       = try(module.secondary_argocd[0].admin_username, "admin")
+}
+
+output "secondary_argocd_admin_password" {
+  description = "ArgoCD admin password for secondary cluster"
+  value       = try(module.secondary_argocd[0].admin_password, "")
+  sensitive    = true
 }

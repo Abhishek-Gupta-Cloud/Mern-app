@@ -41,17 +41,20 @@ primary_node_group_max     = 3      # CHANGED: 10 → 3 (limit max)
 # secondary_node_group_max     = 5
 
 # ===================================================================
-# COST OPTIMIZATION: Minimal Database
+# COST OPTIMIZATION: Minimal DocumentDB
 # ===================================================================
-# db.t3.medium Multi-AZ = $150/month
-# db.t3.micro Single-AZ = $30/month (80% savings)
+# DocumentDB is the managed MongoDB-compatible service for Mongoose apps
 
-db_name               = "merndb"
-db_engine             = "mongodb"        # or mysql, postgres
-db_engine_version     = "7.0"
-db_instance_class     = "db.t3.micro"    # CHANGED: medium → micro
-db_allocated_storage  = 20               # CHANGED: 100 → 20 GB (minimum)
-db_multi_az           = false             # CHANGED: true → false (saves 50%)
+documentdb_database_name           = "mernapp"
+documentdb_username                = "admin"
+documentdb_engine_version          = "5.0.0"
+documentdb_instance_class          = "db.r5.large"
+documentdb_instance_count          = 2
+documentdb_backup_retention_period = 7
+documentdb_preferred_backup_window = "03:00-04:00"
+documentdb_preferred_maintenance_window = "sun:04:00-sun:05:00"
+
+documentdb_parameter_group_family = "docdb5.0"
 
 # ===================================================================
 # COST OPTIMIZATION: No HA/DR Features
@@ -70,6 +73,11 @@ domain_name = "yourdomain.com"
 
 # Monitoring
 alarm_email = "devops@yourdomain.com"
+enable_kubernetes_monitoring = true
+monitoring_storage_class_name = "gp3"
+grafana_persistence_size = "20Gi"
+prometheus_persistence_size = "50Gi"
+alertmanager_persistence_size = "20Gi"
 
 # Tags
 tags = {

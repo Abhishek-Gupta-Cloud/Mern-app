@@ -30,7 +30,7 @@ variable "primary_region" {
 variable "secondary_region" {
   description = "Secondary AWS region for HA/DR (leave empty to disable)"
   type        = string
-  default     = ""  # CHANGE to "us-west-2" for multi-region HA
+  default     = "us-west-2" # CHANGE to "us-west-2" for multi-region HA
 
   validation {
     condition     = var.secondary_region == "" || can(regex("^[a-z]{2}-[a-z]+-[0-9]{1}$", var.secondary_region))
@@ -112,51 +112,64 @@ variable "secondary_node_group_max" {
   default     = 5
 }
 
-# RDS Configuration
-variable "db_name" {
-  description = "Database name"
+# DocumentDB Configuration
+variable "documentdb_database_name" {
+  description = "DocumentDB database name"
   type        = string
-  default     = "merndb"
+  default     = "mernapp"
 }
 
-variable "db_engine" {
-  description = "Database engine"
+variable "documentdb_username" {
+  description = "DocumentDB admin username"
   type        = string
-  default     = "mongodb"
-
-  validation {
-    condition     = contains(["mongodb", "mysql", "postgres"], var.db_engine)
-    error_message = "Must be mongodb, mysql, or postgres."
-  }
+  default     = "admin"
 }
 
-variable "db_engine_version" {
-  description = "Database engine version"
+variable "documentdb_engine_version" {
+  description = "Amazon DocumentDB engine version"
   type        = string
-  default     = "7.0"
+  default     = "5.0.0"
 }
 
-variable "db_instance_class" {
-  description = "Database instance class"
+variable "documentdb_instance_class" {
+  description = "DocumentDB instance class"
   type        = string
-  default     = "db.t3.medium"
+  default     = "db.r5.large"
 }
 
-variable "db_allocated_storage" {
-  description = "Allocated storage in GB"
+variable "documentdb_instance_count" {
+  description = "Number of DocumentDB instances in the cluster"
   type        = number
-  default     = 100
+  default     = 2
 
   validation {
-    condition     = var.db_allocated_storage >= 20 && var.db_allocated_storage <= 65536
-    error_message = "Allocated storage must be between 20 and 65536 GB."
+    condition     = var.documentdb_instance_count >= 1 && var.documentdb_instance_count <= 15
+    error_message = "DocumentDB instance count must be between 1 and 15."
   }
 }
 
-variable "db_multi_az" {
-  description = "Enable Multi-AZ deployment"
-  type        = bool
-  default     = true
+variable "documentdb_backup_retention_period" {
+  description = "Backup retention period for DocumentDB"
+  type        = number
+  default     = 7
+}
+
+variable "documentdb_preferred_backup_window" {
+  description = "Preferred daily backup window for DocumentDB"
+  type        = string
+  default     = "03:00-04:00"
+}
+
+variable "documentdb_preferred_maintenance_window" {
+  description = "Preferred weekly maintenance window for DocumentDB"
+  type        = string
+  default     = "sun:04:00-sun:05:00"
+}
+
+variable "documentdb_parameter_group_family" {
+  description = "DocumentDB parameter group family"
+  type        = string
+  default     = "docdb5.0"
 }
 
 # Features
@@ -197,13 +210,62 @@ variable "alarm_email" {
   }
 }
 
+variable "enable_kubernetes_monitoring" {
+  description = "Enable Prometheus and Grafana monitoring on EKS clusters"
+  type        = bool
+  default     = true
+}
+
+variable "monitoring_storage_class_name" {
+  description = "Storage class used for Prometheus, Grafana, and Alertmanager persistent volumes"
+  type        = string
+  default     = "gp3"
+}
+
+variable "grafana_persistence_size" {
+  description = "Persistent storage size for Grafana"
+  type        = string
+  default     = "20Gi"
+}
+
+variable "prometheus_persistence_size" {
+  description = "Persistent storage size for Prometheus"
+  type        = string
+  default     = "50Gi"
+}
+
+variable "alertmanager_persistence_size" {
+  description = "Persistent storage size for Alertmanager"
+  type        = string
+  default     = "20Gi"
+}
+
 # Tags
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {
-    Owner       = "DevOps"
-    CostCenter  = "Engineering"
-    Compliance  = "SOC2"
+    Owner      = "DevOps"
+    CostCenter = "Engineering"
+    Compliance = "SOC2"
   }
+}
+
+# ArgoCD / GitOps
+variable "enable_argocd" {
+  description = "Enable ArgoCD deployment to clusters"
+  type        = bool
+  default     = true
+}
+
+variable "argocd_certificate_arn" {
+  description = "Optional ACM certificate ARN for ArgoCD HTTPS"
+  type        = string
+  default     = ""
+}
+
+variable "argocd_hostname" {
+  description = "Optional fully-qualified hostname for ArgoCD (e.g., argocd.example.com). Defaults to argocd-<cluster>.<domain_name>"
+  type        = string
+  default     = ""
 }

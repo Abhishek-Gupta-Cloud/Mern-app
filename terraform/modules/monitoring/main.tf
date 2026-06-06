@@ -135,12 +135,12 @@ resource "aws_cloudwatch_log_group" "eks_logs" {
   tags = var.tags
 }
 
-resource "aws_cloudwatch_metric_filter" "eks_errors" {
+resource "aws_cloudwatch_log_metric_filter" "eks_errors" {
   for_each = aws_cloudwatch_log_group.eks_logs
 
   name           = "${each.value.name}-errors"
   log_group_name = each.value.name
-  filter_pattern = "[time, request_id, event_type = \"ERROR\", ...]"
+  pattern        = "[time, request_id, event_type = \"ERROR\", ...]"
 
   metric_transformation {
     name      = "ErrorCount"
