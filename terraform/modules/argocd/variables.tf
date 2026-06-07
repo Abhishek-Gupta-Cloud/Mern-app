@@ -59,7 +59,7 @@ variable "load_balancer_name" {
 variable "git_repo_url" {
   description = "Git repository URL for ArgoCD to watch"
   type        = string
-  default     = "https://github.com/your-org/your-repo"
+  default     = "https://github.com/Abhishek-Gupta-Cloud/Mern-app.git"
 }
 
 variable "git_repo_revision" {
