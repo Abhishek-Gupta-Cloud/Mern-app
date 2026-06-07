@@ -53,22 +53,22 @@ resource "kubernetes_secret" "argocd_admin" {
 }
 
 resource "helm_release" "argocd" {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  namespace  = kubernetes_namespace.argocd.metadata[0].name
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = kubernetes_namespace.argocd.metadata[0].name
   create_namespace = false
 
   values = [yamlencode({
     server = {
-      service = { type = "ClusterIP" }
+      service   = { type = "ClusterIP" }
       extraArgs = ["--redis-replicas=2"]
     }
     controller = {
       replicas = var.replica_count
     }
     repoServer = { replicas = var.replica_count }
-    redis = { enabled = true }
+    redis      = { enabled = true }
     configs = {
       secret = {
         existingSecret = kubernetes_secret.argocd_admin.metadata[0].name
@@ -77,7 +77,7 @@ resource "helm_release" "argocd" {
     dex = {
       enabled = var.enable_dex
     }
-    metrics = { enabled = true }
+    metrics   = { enabled = true }
     serverTLS = { enabled = true }
   })]
 
@@ -91,12 +91,12 @@ resource "kubernetes_ingress_v1" "argocd_ingress" {
     namespace = kubernetes_namespace.argocd.metadata[0].name
     annotations = merge(
       {
-        "kubernetes.io/ingress.class"                     = "alb"
-        "alb.ingress.kubernetes.io/scheme"                = "internet-facing"
-        "alb.ingress.kubernetes.io/target-type"           = "ip"
-        "alb.ingress.kubernetes.io/listen-ports"          = jsonencode([{ HTTP = 80 }, { HTTPS = 443 }])
+        "kubernetes.io/ingress.class"            = "alb"
+        "alb.ingress.kubernetes.io/scheme"       = "internet-facing"
+        "alb.ingress.kubernetes.io/target-type"  = "ip"
+        "alb.ingress.kubernetes.io/listen-ports" = jsonencode([{ HTTP = 80 }, { HTTPS = 443 }])
         # Redirect HTTP -> HTTPS
-        "alb.ingress.kubernetes.io/ssl-redirect"          = "443"
+        "alb.ingress.kubernetes.io/ssl-redirect" = "443"
       },
       var.load_balancer_name != "" ? { "alb.ingress.kubernetes.io/load-balancer-name" = var.load_balancer_name } : {},
       var.argocd_certificate_arn != "" ? { "alb.ingress.kubernetes.io/certificate-arn" = var.argocd_certificate_arn } : {}
@@ -108,7 +108,7 @@ resource "kubernetes_ingress_v1" "argocd_ingress" {
       host = var.argocd_hostname != "" ? var.argocd_hostname : "argocd-${var.cluster_name}.${var.domain_name}"
       http {
         path {
-          path = "/"
+          path      = "/"
           path_type = "Prefix"
           backend {
             service {
@@ -128,9 +128,9 @@ resource "kubernetes_ingress_v1" "argocd_ingress" {
 
 # Optionally lookup the ALB created by AWS LB Controller if a name was supplied
 data "aws_lb" "argocd_alb" {
-  count = var.load_balancer_name != "" ? 1 : 0
+  count    = var.load_balancer_name != "" ? 1 : 0
   provider = aws
-  name = var.load_balancer_name
+  name     = var.load_balancer_name
 }
 
 output "argocd_admin_password" {

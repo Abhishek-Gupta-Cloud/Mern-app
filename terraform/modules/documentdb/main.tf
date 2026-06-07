@@ -117,13 +117,13 @@ resource "aws_docdb_cluster" "main" {
 }
 
 resource "aws_docdb_cluster_instance" "instances" {
-  count                = var.instance_count
-  identifier           = "${var.cluster_identifier}-instance-${count.index + 1}"
-  cluster_identifier             = aws_docdb_cluster.main.id
-  instance_class                 = var.documentdb_instance_class
-  engine                         = "docdb"
-  auto_minor_version_upgrade     = true
-  apply_immediately              = false
+  count                      = var.instance_count
+  identifier                 = "${var.cluster_identifier}-instance-${count.index + 1}"
+  cluster_identifier         = aws_docdb_cluster.main.id
+  instance_class             = var.documentdb_instance_class
+  engine                     = "docdb"
+  auto_minor_version_upgrade = true
+  apply_immediately          = false
 
   tags = merge(var.tags, {
     Name = "${var.cluster_identifier}-instance-${count.index + 1}"

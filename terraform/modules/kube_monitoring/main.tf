@@ -49,10 +49,10 @@ resource "kubernetes_secret" "grafana_admin" {
 }
 
 resource "helm_release" "kube_prometheus_stack" {
-  name       = "kube-prometheus-stack-${var.cluster_name}"
-  repository = "https://prometheus-community.github.io/helm-charts"
-  chart      = "kube-prometheus-stack"
-  namespace  = kubernetes_namespace.monitoring.metadata[0].name
+  name             = "kube-prometheus-stack-${var.cluster_name}"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  namespace        = kubernetes_namespace.monitoring.metadata[0].name
   create_namespace = false
 
   values = [yamlencode({
@@ -66,15 +66,15 @@ resource "helm_release" "kube_prometheus_stack" {
         enabled = true
         hosts = [
           {
-            host = var.grafana_host
+            host  = var.grafana_host
             paths = ["/"]
           }
         ]
         annotations = {
-          "kubernetes.io/ingress.class"       = "alb"
-          "alb.ingress.kubernetes.io/scheme"  = "internet-facing"
-          "alb.ingress.kubernetes.io/target-type" = "ip"
-          "alb.ingress.kubernetes.io/listen-ports" = jsonencode([{ HTTP = 80 }])
+          "kubernetes.io/ingress.class"                = "alb"
+          "alb.ingress.kubernetes.io/scheme"           = "internet-facing"
+          "alb.ingress.kubernetes.io/target-type"      = "ip"
+          "alb.ingress.kubernetes.io/listen-ports"     = jsonencode([{ HTTP = 80 }])
           "alb.ingress.kubernetes.io/healthcheck-path" = "/"
           "alb.ingress.kubernetes.io/healthcheck-port" = "80"
         }
@@ -98,7 +98,7 @@ resource "helm_release" "kube_prometheus_stack" {
     prometheus = {
       enabled = true
       prometheusSpec = {
-        retention               = "15d"
+        retention                               = "15d"
         serviceMonitorSelectorNilUsesHelmValues = false
         storageSpec = {
           volumeClaimTemplate = {
@@ -282,41 +282,41 @@ resource "kubernetes_config_map" "grafana_cluster_health" {
 
   data = {
     "cluster-health-dashboard.json" = jsonencode({
-      uid         = "cluster-health"
-      title       = "Cluster Health"
+      uid           = "cluster-health"
+      title         = "Cluster Health"
       schemaVersion = 30
-      version     = 1
+      version       = 1
       panels = [
         {
-          type  = "stat"
-          title = "Nodes Ready"
-          datasource = "Prometheus"
-          targets = [{ expr = "count(kube_node_status_condition{condition=\"Ready\",status=\"true\"})", refId = "A" }]
+          type        = "stat"
+          title       = "Nodes Ready"
+          datasource  = "Prometheus"
+          targets     = [{ expr = "count(kube_node_status_condition{condition=\"Ready\",status=\"true\"})", refId = "A" }]
           fieldConfig = { defaults = { unit = "short" } }
-          gridPos = { x = 0, y = 0, w = 6, h = 6 }
+          gridPos     = { x = 0, y = 0, w = 6, h = 6 }
         },
         {
-          type  = "stat"
-          title = "Pods Running"
-          datasource = "Prometheus"
-          targets = [{ expr = "count(kube_pod_status_phase{phase=\"Running\"})", refId = "A" }]
+          type        = "stat"
+          title       = "Pods Running"
+          datasource  = "Prometheus"
+          targets     = [{ expr = "count(kube_pod_status_phase{phase=\"Running\"})", refId = "A" }]
           fieldConfig = { defaults = { unit = "short" } }
-          gridPos = { x = 0, y = 0, w = 12, h = 8 }
+          gridPos     = { x = 0, y = 0, w = 12, h = 8 }
         },
         {
-          type  = "stat"
-          title = "Deployments Available"
-          datasource = "Prometheus"
-          targets = [{ expr = "sum(kube_deployment_status_replicas_available)", refId = "A" }]
+          type        = "stat"
+          title       = "Deployments Available"
+          datasource  = "Prometheus"
+          targets     = [{ expr = "sum(kube_deployment_status_replicas_available)", refId = "A" }]
           fieldConfig = { defaults = { unit = "short" } }
-          gridPos = { x = 0, y = 8, w = 12, h = 8 }
+          gridPos     = { x = 0, y = 8, w = 12, h = 8 }
         },
         {
-          type  = "graph"
-          title = "API Server Request Rate"
+          type       = "graph"
+          title      = "API Server Request Rate"
           datasource = "Prometheus"
-          targets = [{ expr = "rate(apiserver_request_total[5m])", refId = "A" }]
-          gridPos = { x = 0, y = 6, w = 12, h = 8 }
+          targets    = [{ expr = "rate(apiserver_request_total[5m])", refId = "A" }]
+          gridPos    = { x = 0, y = 6, w = 12, h = 8 }
         }
       ]
     })
@@ -335,38 +335,38 @@ resource "kubernetes_config_map" "grafana_node_pod_usage" {
 
   data = {
     "node-pod-usage-dashboard.json" = jsonencode({
-      uid         = "node-pod-usage"
-      title       = "Node & Pod Resource Usage"
+      uid           = "node-pod-usage"
+      title         = "Node & Pod Resource Usage"
       schemaVersion = 30
-      version     = 1
+      version       = 1
       panels = [
         {
-          type  = "timeseries"
-          title = "Node CPU Usage"
+          type       = "timeseries"
+          title      = "Node CPU Usage"
           datasource = "Prometheus"
-          targets = [{ expr = "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", refId = "A" }]
-          gridPos = { x = 0, y = 0, w = 12, h = 8 }
+          targets    = [{ expr = "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", refId = "A" }]
+          gridPos    = { x = 0, y = 0, w = 12, h = 8 }
         },
         {
-          type  = "timeseries"
-          title = "Node Memory Usage"
+          type       = "timeseries"
+          title      = "Node Memory Usage"
           datasource = "Prometheus"
-          targets = [{ expr = "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", refId = "A" }]
-          gridPos = { x = 0, y = 8, w = 12, h = 8 }
+          targets    = [{ expr = "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", refId = "A" }]
+          gridPos    = { x = 0, y = 8, w = 12, h = 8 }
         },
         {
-          type  = "timeseries"
-          title = "Pod CPU Usage (Top 10)"
+          type       = "timeseries"
+          title      = "Pod CPU Usage (Top 10)"
           datasource = "Prometheus"
-          targets = [{ expr = "topk(10, sum by (pod, namespace) (rate(container_cpu_usage_seconds_total{container!=\"\",namespace=\"${var.app_namespace}\"}[5m])))", refId = "A" }]
-          gridPos = { x = 12, y = 0, w = 12, h = 8 }
+          targets    = [{ expr = "topk(10, sum by (pod, namespace) (rate(container_cpu_usage_seconds_total{container!=\"\",namespace=\"${var.app_namespace}\"}[5m])))", refId = "A" }]
+          gridPos    = { x = 12, y = 0, w = 12, h = 8 }
         },
         {
-          type  = "timeseries"
-          title = "Pod Memory Usage (Top 10)"
+          type       = "timeseries"
+          title      = "Pod Memory Usage (Top 10)"
           datasource = "Prometheus"
-          targets = [{ expr = "topk(10, sum by (pod, namespace) (container_memory_working_set_bytes{container!=\"\",namespace=\"${var.app_namespace}\"}))", refId = "A" }]
-          gridPos = { x = 12, y = 8, w = 12, h = 8 }
+          targets    = [{ expr = "topk(10, sum by (pod, namespace) (container_memory_working_set_bytes{container!=\"\",namespace=\"${var.app_namespace}\"}))", refId = "A" }]
+          gridPos    = { x = 12, y = 8, w = 12, h = 8 }
         },
       ]
     })
@@ -385,38 +385,38 @@ resource "kubernetes_config_map" "grafana_app_performance" {
 
   data = {
     "app-performance-dashboard.json" = jsonencode({
-      uid         = "app-performance"
-      title       = "Application Performance"
+      uid           = "app-performance"
+      title         = "Application Performance"
       schemaVersion = 30
-      version     = 1
+      version       = 1
       panels = [
         {
-          type  = "timeseries"
-          title = "Application CPU Usage"
+          type       = "timeseries"
+          title      = "Application CPU Usage"
           datasource = "Prometheus"
-          targets = [{ expr = "sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\",namespace=\"${var.app_namespace}\"}[5m]))", refId = "A" }]
-          gridPos = { x = 0, y = 0, w = 12, h = 8 }
+          targets    = [{ expr = "sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\",namespace=\"${var.app_namespace}\"}[5m]))", refId = "A" }]
+          gridPos    = { x = 0, y = 0, w = 12, h = 8 }
         },
         {
-          type  = "timeseries"
-          title = "Application Memory Usage"
+          type       = "timeseries"
+          title      = "Application Memory Usage"
           datasource = "Prometheus"
-          targets = [{ expr = "sum by (namespace) (container_memory_working_set_bytes{container!=\"\",namespace=\"${var.app_namespace}\"})", refId = "A" }]
-          gridPos = { x = 0, y = 8, w = 12, h = 8 }
+          targets    = [{ expr = "sum by (namespace) (container_memory_working_set_bytes{container!=\"\",namespace=\"${var.app_namespace}\"})", refId = "A" }]
+          gridPos    = { x = 0, y = 8, w = 12, h = 8 }
         },
         {
-          type  = "timeseries"
-          title = "Network Receive (App Namespace)"
+          type       = "timeseries"
+          title      = "Network Receive (App Namespace)"
           datasource = "Prometheus"
-          targets = [{ expr = "sum by (namespace) (rate(container_network_receive_bytes_total{namespace=\"${var.app_namespace}\"}[5m]))", refId = "A" }]
-          gridPos = { x = 12, y = 0, w = 12, h = 8 }
+          targets    = [{ expr = "sum by (namespace) (rate(container_network_receive_bytes_total{namespace=\"${var.app_namespace}\"}[5m]))", refId = "A" }]
+          gridPos    = { x = 12, y = 0, w = 12, h = 8 }
         },
         {
-          type  = "timeseries"
-          title = "Network Transmit (App Namespace)"
+          type       = "timeseries"
+          title      = "Network Transmit (App Namespace)"
           datasource = "Prometheus"
-          targets = [{ expr = "sum by (namespace) (rate(container_network_transmit_bytes_total{namespace=\"${var.app_namespace}\"}[5m]))", refId = "A" }]
-          gridPos = { x = 12, y = 8, w = 12, h = 8 }
+          targets    = [{ expr = "sum by (namespace) (rate(container_network_transmit_bytes_total{namespace=\"${var.app_namespace}\"}[5m]))", refId = "A" }]
+          gridPos    = { x = 12, y = 8, w = 12, h = 8 }
         }
       ]
     })

@@ -90,8 +90,8 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block      = "0.0.0.0/0"
-    gateway_id      = aws_internet_gateway.main.id
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
   }
 
   tags = merge(var.tags, {
@@ -111,8 +111,8 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block      = "0.0.0.0/0"
-    nat_gateway_id  = aws_nat_gateway.nat[count.index].id
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat[count.index].id
   }
 
   tags = merge(var.tags, {
@@ -150,7 +150,7 @@ resource "aws_security_group_rule" "cluster_ingress_workstation_https" {
   from_port         = 443
   to_port           = 443
   protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]  # Restrict this in production
+  cidr_blocks       = ["0.0.0.0/0"] # Restrict this in production
   security_group_id = aws_security_group.cluster.id
 }
 
@@ -258,10 +258,10 @@ resource "aws_security_group" "node_group" {
   }
 
   ingress {
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    self        = true
+    from_port = 0
+    to_port   = 65535
+    protocol  = "tcp"
+    self      = true
   }
 
   egress {
@@ -417,12 +417,12 @@ resource "aws_cloudwatch_log_group" "eks_cluster" {
 
 # Application Load Balancer
 resource "aws_lb" "main" {
-  count           = var.enable_ingress ? 1 : 0
-  name_prefix     = "alb-"
-  internal        = false
+  count              = var.enable_ingress ? 1 : 0
+  name_prefix        = "alb-"
+  internal           = false
   load_balancer_type = "application"
-  security_groups = [aws_security_group.alb[0].id]
-  subnets         = aws_subnet.public[*].id
+  security_groups    = [aws_security_group.alb[0].id]
+  subnets            = aws_subnet.public[*].id
 
   enable_deletion_protection = false
 

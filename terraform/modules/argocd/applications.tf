@@ -46,12 +46,12 @@ resource "kubernetes_manifest" "argocd_app" {
     spec = {
       project = "mern-app"
       source = {
-        repoURL = var.git_repo_url
-        path    = each.value
+        repoURL        = var.git_repo_url
+        path           = each.value
         targetRevision = var.git_repo_revision
       }
       destination = {
-        server = "https://kubernetes.default.svc"
+        server    = "https://kubernetes.default.svc"
         namespace = "default"
       }
       syncPolicy = {
@@ -69,7 +69,7 @@ resource "kubernetes_manifest" "argocd_app" {
 
 output "applications" {
   value = [for k, v in kubernetes_manifest.argocd_app : {
-    name = k
+    name   = k
     status = try(v.manifest.status, {})
   }]
 }

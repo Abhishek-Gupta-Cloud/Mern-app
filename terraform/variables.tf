@@ -15,40 +15,23 @@ variable "environment" {
   }
 }
 
-# AWS Regions
-variable "primary_region" {
-  description = "Primary AWS region for deployment"
+# AWS Region (single-region deployment)
+variable "aws_region" {
+  description = "AWS region for deployment (single region)"
   type        = string
   default     = "us-east-1"
 
   validation {
-    condition     = can(regex("^[a-z]{2}-[a-z]+-[0-9]{1}$", var.primary_region))
+    condition     = can(regex("^[a-z]{2}-[a-z]+-[0-9]{1}$", var.aws_region))
     error_message = "Must be a valid AWS region (e.g., us-east-1, eu-west-1)."
   }
 }
 
-variable "secondary_region" {
-  description = "Secondary AWS region for HA/DR (leave empty to disable)"
-  type        = string
-  default     = "us-west-2" # CHANGE to "us-west-2" for multi-region HA
-
-  validation {
-    condition     = var.secondary_region == "" || can(regex("^[a-z]{2}-[a-z]+-[0-9]{1}$", var.secondary_region))
-    error_message = "Must be empty (disabled) or a valid AWS region (e.g., us-east-1, eu-west-1)."
-  }
-}
-
 # VPC Configuration
-variable "primary_vpc_cidr" {
-  description = "CIDR block for primary VPC"
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
   type        = string
   default     = "10.0.0.0/16"
-}
-
-variable "secondary_vpc_cidr" {
-  description = "CIDR block for secondary VPC (only used if secondary_region is enabled)"
-  type        = string
-  default     = "10.1.0.0/16"
 }
 
 # EKS Configuration
@@ -64,52 +47,28 @@ variable "instance_types" {
   default     = ["t3.medium", "t3.large"]
 }
 
-# Primary Region Node Group
-variable "primary_node_group_desired" {
-  description = "Desired number of nodes in primary region"
+# Node Group Settings
+variable "node_group_desired" {
+  description = "Desired number of nodes in the node group"
   type        = number
   default     = 3
 
   validation {
-    condition     = var.primary_node_group_desired >= 1 && var.primary_node_group_desired <= 100
+    condition     = var.node_group_desired >= 1 && var.node_group_desired <= 100
     error_message = "Desired nodes must be between 1 and 100."
   }
 }
 
-variable "primary_node_group_min" {
-  description = "Minimum number of nodes in primary region"
+variable "node_group_min" {
+  description = "Minimum number of nodes in the node group"
   type        = number
   default     = 2
 }
 
-variable "primary_node_group_max" {
-  description = "Maximum number of nodes in primary region"
+variable "node_group_max" {
+  description = "Maximum number of nodes in the node group"
   type        = number
   default     = 10
-}
-
-# Secondary Region Node Group (only used if secondary_region is enabled - adds $300/month)
-variable "secondary_node_group_desired" {
-  description = "Desired number of nodes in secondary region (for HA/DR)"
-  type        = number
-  default     = 2
-
-  validation {
-    condition     = var.secondary_node_group_desired >= 1 && var.secondary_node_group_desired <= 100
-    error_message = "Desired nodes must be between 1 and 100."
-  }
-}
-
-variable "secondary_node_group_min" {
-  description = "Minimum number of nodes in secondary region"
-  type        = number
-  default     = 1
-}
-
-variable "secondary_node_group_max" {
-  description = "Maximum number of nodes in secondary region"
-  type        = number
-  default     = 5
 }
 
 # DocumentDB Configuration
@@ -134,7 +93,7 @@ variable "documentdb_engine_version" {
 variable "documentdb_instance_class" {
   description = "DocumentDB instance class"
   type        = string
-  default     = "db.r5.large"
+  default     = "db.t3.medium"
 }
 
 variable "documentdb_instance_count" {
@@ -211,7 +170,7 @@ variable "alarm_email" {
 }
 
 variable "enable_kubernetes_monitoring" {
-  description = "Enable Prometheus and Grafana monitoring on EKS clusters"
+  description = "Enable Prometheus and Grafana monitoring on EKS cluster"
   type        = bool
   default     = true
 }
@@ -239,6 +198,12 @@ variable "alertmanager_persistence_size" {
   type        = string
   default     = "20Gi"
 }
+
+# variable "tags" {
+#   description = "Tags"
+#   type        = map(string)
+#   default     = {}
+# }
 
 # Tags
 variable "tags" {

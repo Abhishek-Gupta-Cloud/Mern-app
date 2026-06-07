@@ -84,34 +84,34 @@ variable "alertmanager_persistence_size" {
 variable "app_services" {
   description = "Application services exposed in the cluster to scrape via ServiceMonitor"
   type = list(object({
-    name        = string
-    namespace   = string
-    port        = number
+    name         = string
+    namespace    = string
+    port         = number
     metrics_path = string
   }))
   default = [
     {
-      name = "auth-service"
-      namespace = "mern-app"
-      port = 5001
+      name         = "auth-service"
+      namespace    = "mern-app"
+      port         = 5001
       metrics_path = "/metrics"
     },
     {
-      name = "api-gateway"
-      namespace = "mern-app"
-      port = 4000
+      name         = "api-gateway"
+      namespace    = "mern-app"
+      port         = 4000
       metrics_path = "/metrics"
     },
     {
-      name = "tasks-service"
-      namespace = "mern-app"
-      port = 5002
+      name         = "tasks-service"
+      namespace    = "mern-app"
+      port         = 5002
       metrics_path = "/metrics"
     },
     {
-      name = "frontend"
-      namespace = "mern-app"
-      port = 80
+      name         = "frontend"
+      namespace    = "mern-app"
+      port         = 80
       metrics_path = "/metrics"
     }
   ]
