@@ -71,65 +71,65 @@ module "primary_eks" {
   tags = var.tags
 }
 
-# DocumentDB in the same region
-module "primary_documentdb" {
-  source = "./modules/documentdb"
+# # DocumentDB in the same region
+# module "primary_documentdb" {
+#   source = "./modules/documentdb"
 
-  cluster_identifier                      = "${var.project_name}-docdb"
-  vpc_id                                  = module.primary_eks.vpc_id
-  private_subnet_ids                      = module.primary_eks.private_subnet_ids
-  eks_security_group_ids                  = [module.primary_eks.cluster_security_group_id]
-  private_cidr_blocks                     = [var.vpc_cidr]
-  environment                             = var.environment
-  documentdb_username                     = var.documentdb_username
-  documentdb_database_name                = var.documentdb_database_name
-  documentdb_engine_version               = var.documentdb_engine_version
-  documentdb_instance_class               = var.documentdb_instance_class
-  instance_count                          = var.documentdb_instance_count
-  documentdb_backup_retention_period      = var.documentdb_backup_retention_period
-  documentdb_preferred_backup_window      = var.documentdb_preferred_backup_window
-  documentdb_preferred_maintenance_window = var.documentdb_preferred_maintenance_window
-  parameter_group_family                  = var.documentdb_parameter_group_family
-  tags                                    = var.tags
-}
+#   cluster_identifier                      = "${var.project_name}-docdb"
+#   vpc_id                                  = module.primary_eks.vpc_id
+#   private_subnet_ids                      = module.primary_eks.private_subnet_ids
+#   eks_security_group_ids                  = [module.primary_eks.cluster_security_group_id]
+#   private_cidr_blocks                     = [var.vpc_cidr]
+#   environment                             = var.environment
+#   documentdb_username                     = var.documentdb_username
+#   documentdb_database_name                = var.documentdb_database_name
+#   documentdb_engine_version               = var.documentdb_engine_version
+#   documentdb_instance_class               = var.documentdb_instance_class
+#   instance_count                          = var.documentdb_instance_count
+#   documentdb_backup_retention_period      = var.documentdb_backup_retention_period
+#   documentdb_preferred_backup_window      = var.documentdb_preferred_backup_window
+#   documentdb_preferred_maintenance_window = var.documentdb_preferred_maintenance_window
+#   parameter_group_family                  = var.documentdb_parameter_group_family
+#   tags                                    = var.tags
+# }
 
 # CloudWatch Monitoring for single-region cluster
-module "monitoring" {
-  source = "./modules/monitoring"
+# module "monitoring" {
+#   source = "./modules/monitoring"
 
-  cluster_name            = module.primary_eks.cluster_name
-  aws_region              = var.aws_region
-  alb_arn                 = module.primary_eks.alb_arn
-  autoscaling_group_names = [module.primary_eks.asg_name]
-  enable_dashboard        = var.enable_monitoring
-  enable_alarms           = true
-  alarm_email             = var.alarm_email
+#   cluster_name            = module.primary_eks.cluster_name
+#   aws_region              = var.aws_region
+#   alb_arn                 = module.primary_eks.alb_arn
+#   autoscaling_group_names = [module.primary_eks.asg_name]
+#   enable_dashboard        = var.enable_monitoring
+#   enable_alarms           = true
+#   alarm_email             = var.alarm_email
 
-  tags = var.tags
-}
+#   tags = var.tags
+# }
 
-# Kubernetes-native Prometheus + Grafana monitoring for the cluster
-module "primary_kube_monitoring" {
-  count  = var.enable_monitoring && var.enable_kubernetes_monitoring ? 1 : 0
-  source = "./modules/kube_monitoring"
-  providers = {
-    kubernetes = kubernetes
-    helm       = helm
-  }
+# # Kubernetes-native Prometheus + Grafana monitoring for the cluster
+# module "primary_kube_monitoring" {
+#   count  = var.enable_monitoring && var.enable_kubernetes_monitoring ? 1 : 0
+#   source = "./modules/kube_monitoring"
+#   providers = {
+#     kubernetes = kubernetes
+#     helm       = helm
+#   }
 
-  cluster_name                  = module.primary_eks.cluster_name
-  cluster_endpoint              = module.primary_eks.cluster_endpoint
-  cluster_ca_certificate        = module.primary_eks.cluster_ca_certificate
-  domain_name                   = var.domain_name
-  environment                   = var.environment
-  region                        = var.aws_region
-  grafana_host                  = "grafana-${module.primary_eks.cluster_name}.${var.domain_name}"
-  storage_class_name            = var.monitoring_storage_class_name
-  grafana_persistence_size      = var.grafana_persistence_size
-  prometheus_persistence_size   = var.prometheus_persistence_size
-  alertmanager_persistence_size = var.alertmanager_persistence_size
-  tags                          = var.tags
-}
+#   cluster_name                  = module.primary_eks.cluster_name
+#   cluster_endpoint              = module.primary_eks.cluster_endpoint
+#   cluster_ca_certificate        = module.primary_eks.cluster_ca_certificate
+#   domain_name                   = var.domain_name
+#   environment                   = var.environment
+#   region                        = var.aws_region
+#   grafana_host                  = "grafana-${module.primary_eks.cluster_name}.${var.domain_name}"
+#   storage_class_name            = var.monitoring_storage_class_name
+#   grafana_persistence_size      = var.grafana_persistence_size
+#   prometheus_persistence_size   = var.prometheus_persistence_size
+#   alertmanager_persistence_size = var.alertmanager_persistence_size
+#   tags                          = var.tags
+# }
 
 # ArgoCD - Primary
 module "primary_argocd" {

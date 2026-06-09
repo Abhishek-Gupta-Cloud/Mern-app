@@ -2,26 +2,28 @@ locals {
   alb_name = data.aws_lb.app.name
 
   node_cpu_metrics = [
-    for asg in var.autoscaling_group_names : [
-      "AWS/EC2",
-      "CPUUtilization",
-      {
-        stat       = "Average"
-        dimensions = { AutoScalingGroupName = asg }
-      }
+  for asg in var.autoscaling_group_names : [
+    "AWS/EC2",
+    "CPUUtilization",
+    "AutoScalingGroupName",
+    asg,
+    {
+      stat = "Average"
+    }
+    ] 
     ]
-  ]
 
-  node_memory_metrics = [
-    for asg in var.autoscaling_group_names : [
-      "CWAgent",
-      "mem_used_percent",
-      {
-        stat       = "Average"
-        dimensions = { AutoScalingGroupName = asg }
-      }
-    ]
+ node_memory_metrics = [
+  for asg in var.autoscaling_group_names : [
+    "CWAgent",
+    "mem_used_percent",
+    "AutoScalingGroupName",
+    asg,
+    {
+      stat = "Average"
+    }
   ]
+]
 
   dashboard_widgets = [
     for widget in [
@@ -126,7 +128,13 @@ resource "aws_cloudwatch_log_metric_filter" "eks_errors" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "node_cpu" {
-  for_each = var.enable_alarms && var.enable_node_alarms ? toset(var.autoscaling_group_names) : toset([])
+  for_each = (
+  var.enable_alarms &&
+  var.enable_node_alarms
+) ? {
+  for idx, asg in var.autoscaling_group_names :
+  tostring(idx) => asg
+} : {}
 
   alarm_name          = "${var.cluster_name}-${each.key}-cpu-high"
   comparison_operator = "GreaterThanThreshold"
@@ -139,13 +147,20 @@ resource "aws_cloudwatch_metric_alarm" "node_cpu" {
   alarm_description   = "EKS node CPU usage above ${var.alarm_cpu_threshold}% for ASG ${each.key}"
   alarm_actions       = var.alarm_actions_enabled ? [aws_sns_topic.alerts.arn] : []
   dimensions = {
-    AutoScalingGroupName = each.key
+    AutoScalingGroupName = each.value
   }
   tags = var.tags
 }
 
 resource "aws_cloudwatch_metric_alarm" "node_memory" {
-  for_each = var.enable_alarms && var.enable_node_alarms && var.enable_memory_metrics ? toset(var.autoscaling_group_names) : toset([])
+  for_each = (
+  var.enable_alarms &&
+  var.enable_node_alarms &&
+  var.enable_memory_metrics
+) ? {
+  for idx, asg in var.autoscaling_group_names :
+  tostring(idx) => asg
+} : {}
 
   alarm_name          = "${var.cluster_name}-${each.key}-memory-high"
   comparison_operator = "GreaterThanThreshold"
@@ -158,7 +173,7 @@ resource "aws_cloudwatch_metric_alarm" "node_memory" {
   alarm_description   = "EKS node memory usage above ${var.alarm_memory_threshold}% for ASG ${each.key}"
   alarm_actions       = var.alarm_actions_enabled ? [aws_sns_topic.alerts.arn] : []
   dimensions = {
-    AutoScalingGroupName = each.key
+    AutoScalingGroupName = each.value
   }
   tags = var.tags
 }
@@ -224,12 +239,31 @@ resource "aws_cloudwatch_composite_alarm" "system_health" {
   actions_enabled   = var.alarm_actions_enabled
   alarm_actions     = var.alarm_actions_enabled ? [aws_sns_topic.alerts.arn] : []
 
-  alarm_rule = join(" OR ", compact(concat(
-    var.enable_node_alarms ? [for a in values(aws_cloudwatch_metric_alarm.node_cpu) : a.alarm_name] : [],
-    var.enable_node_alarms && var.enable_memory_metrics ? [for a in values(aws_cloudwatch_metric_alarm.node_memory) : a.alarm_name] : [],
-    var.enable_alb_alarms ? [for a in aws_cloudwatch_metric_alarm.alb_5xx : a.alarm_name] : [],
-    var.enable_alb_alarms ? [for a in aws_cloudwatch_metric_alarm.alb_latency : a.alarm_name] : [],
-    var.enable_node_failure_alarm ? [for a in aws_cloudwatch_metric_alarm.eks_node_failure : a.alarm_name] : []
+    alarm_rule = join(" OR ", compact(concat(
+    var.enable_node_alarms ? [
+      for a in values(aws_cloudwatch_metric_alarm.node_cpu) :
+      "ALARM(\"${a.alarm_name}\")"
+    ] : [],
+
+    var.enable_node_alarms && var.enable_memory_metrics ? [
+      for a in values(aws_cloudwatch_metric_alarm.node_memory) :
+      "ALARM(\"${a.alarm_name}\")"
+    ] : [],
+
+    var.enable_alb_alarms ? [
+      for a in aws_cloudwatch_metric_alarm.alb_5xx :
+      "ALARM(\"${a.alarm_name}\")"
+    ] : [],
+
+    var.enable_alb_alarms ? [
+      for a in aws_cloudwatch_metric_alarm.alb_latency :
+      "ALARM(\"${a.alarm_name}\")"
+    ] : [],
+
+    var.enable_node_failure_alarm ? [
+      for a in aws_cloudwatch_metric_alarm.eks_node_failure :
+      "ALARM(\"${a.alarm_name}\")"
+    ] : []
   )))
 
   tags = var.tags

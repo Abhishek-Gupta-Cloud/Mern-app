@@ -44,7 +44,7 @@ variable "kubernetes_version" {
 variable "instance_types" {
   description = "EC2 instance types for EKS node groups"
   type        = list(string)
-  default     = ["t3.medium", "t3.large"]
+  default     = ["m7i-flex.large", "c7i-flex.large"]
 }
 
 # Node Group Settings
@@ -110,7 +110,7 @@ variable "documentdb_instance_count" {
 variable "documentdb_backup_retention_period" {
   description = "Backup retention period for DocumentDB"
   type        = number
-  default     = 7
+  default     = 1
 }
 
 variable "documentdb_preferred_backup_window" {

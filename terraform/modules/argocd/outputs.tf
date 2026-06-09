@@ -11,6 +11,6 @@ output "ingress_host" {
   value = var.argocd_hostname != "" ? var.argocd_hostname : "argocd-${var.cluster_name}.${var.domain_name}"
 }
 
-output "alb_dns" {
-  value = var.load_balancer_name != "" ? data.aws_lb.argocd_alb[0].dns_name : ""
-}
+# output "alb_dns" {
+#   value = var.load_balancer_name != "" ? data.aws_lb.argocd_alb[0].dns_name : ""
+# }

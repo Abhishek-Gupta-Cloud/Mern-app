@@ -67,9 +67,10 @@ resource "helm_release" "kube_prometheus_stack" {
         hosts = [
           {
             host  = var.grafana_host
-            paths = ["/"]
+            
           }
         ]
+        paths = ["/"]
         annotations = {
           "kubernetes.io/ingress.class"                = "alb"
           "alb.ingress.kubernetes.io/scheme"           = "internet-facing"

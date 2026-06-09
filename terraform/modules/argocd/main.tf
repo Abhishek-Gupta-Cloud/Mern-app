@@ -62,7 +62,6 @@ resource "helm_release" "argocd" {
   values = [yamlencode({
     server = {
       service   = { type = "ClusterIP" }
-      extraArgs = ["--redis-replicas=2"]
     }
     controller = {
       replicas = var.replica_count
@@ -126,12 +125,12 @@ resource "kubernetes_ingress_v1" "argocd_ingress" {
   depends_on = [helm_release.argocd]
 }
 
-# Optionally lookup the ALB created by AWS LB Controller if a name was supplied
-data "aws_lb" "argocd_alb" {
-  count    = var.load_balancer_name != "" ? 1 : 0
-  provider = aws
-  name     = var.load_balancer_name
-}
+# # Optionally lookup the ALB created by AWS LB Controller if a name was supplied
+# data "aws_lb" "argocd_alb" {
+#   count    = var.load_balancer_name != "" ? 1 : 0
+#   provider = aws
+#   name     = var.load_balancer_name
+# }
 
 output "argocd_admin_password" {
   value     = random_password.argocd_admin.result
@@ -146,6 +145,6 @@ output "argocd_ingress_host" {
   value = "argocd-${var.cluster_name}.${var.domain_name}"
 }
 
-output "argocd_alb_dns" {
-  value = var.load_balancer_name != "" ? data.aws_lb.argocd_alb[0].dns_name : ""
-}
+# output "argocd_alb_dns" {
+#   value = var.load_balancer_name != "" ? data.aws_lb.argocd_alb[0].dns_name : ""
+# }

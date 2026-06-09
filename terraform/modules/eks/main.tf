@@ -376,26 +376,34 @@ resource "helm_release" "aws_load_balancer_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
+   set {
+    name  = "clusterName"
+    value = aws_eks_cluster.main.name
+  }
+  set {
+  name  = "region"
+  value = var.region
+  }
 
-  # set {
-  #   name  = "clusterName"
-  #   value = aws_eks_cluster.main.name
-  # }
+  set {
+  name  = "vpcId"
+  value = aws_vpc.main.id
+  }
 
-  # set {
-  #   name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-  #   value = aws_iam_role.alb_controller.arn
-  # }
+   set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.alb_controller.arn
+  }
 
-  # set {
-  #   name  = "serviceAccount.create"
-  #   value = "true"
-  # }
+   set {
+    name  = "serviceAccount.create"
+    value = "true"
+  }
 
-  # set {
-  #   name  = "serviceAccount.name"
-  #   value = "aws-load-balancer-controller"
-  # }
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
 
   depends_on = [aws_eks_node_group.main]
 }
