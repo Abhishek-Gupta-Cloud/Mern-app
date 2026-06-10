@@ -90,37 +90,38 @@ resource "kubernetes_ingress_v1" "argocd_ingress" {
     namespace = kubernetes_namespace.argocd.metadata[0].name
     annotations = merge(
       {
-        "kubernetes.io/ingress.class"            = "alb"
-        "alb.ingress.kubernetes.io/scheme"       = "internet-facing"
-        "alb.ingress.kubernetes.io/target-type"  = "ip"
-        "alb.ingress.kubernetes.io/listen-ports" = jsonencode([{ HTTP = 80 }, { HTTPS = 443 }])
+       "kubernetes.io/ingress.class"                 = "alb"
+  "alb.ingress.kubernetes.io/scheme"            = "internet-facing"
+  "alb.ingress.kubernetes.io/target-type"       = "ip"
+  "alb.ingress.kubernetes.io/listen-ports"      = "[{\"HTTP\":80}]"
+  "alb.ingress.kubernetes.io/healthcheck-path"  = "/"
+  "alb.ingress.kubernetes.io/success-codes"     = "200-399"
         # Redirect HTTP -> HTTPS
-        "alb.ingress.kubernetes.io/ssl-redirect" = "443"
       },
       var.load_balancer_name != "" ? { "alb.ingress.kubernetes.io/load-balancer-name" = var.load_balancer_name } : {},
       var.argocd_certificate_arn != "" ? { "alb.ingress.kubernetes.io/certificate-arn" = var.argocd_certificate_arn } : {}
     )
   }
 
-  spec {
-    rule {
-      host = var.argocd_hostname != "" ? var.argocd_hostname : "argocd-${var.cluster_name}.${var.domain_name}"
-      http {
-        path {
-          path      = "/"
-          path_type = "Prefix"
-          backend {
-            service {
-              name = "argocd-server"
-              port {
-                number = 80
-              }
+ spec {
+  rule {
+    http {
+      path {
+        path      = "/"
+        path_type = "Prefix"
+
+        backend {
+          service {
+            name = "argocd-server"
+            port {
+              number = 80
             }
           }
         }
       }
     }
   }
+}
 
   depends_on = [helm_release.argocd]
 }
