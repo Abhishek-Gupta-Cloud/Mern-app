@@ -152,3 +152,138 @@ module "primary_argocd" {
 
   depends_on = [module.primary_eks]
 }
+# =============================================================================
+# root/main.tf  (excerpt — add this block to your existing root configuration)
+# =============================================================================
+# This snippet shows how to call the monitoring module from your root Terraform
+# configuration that already manages the EKS cluster, node groups, ALB
+# controller, and ArgoCD.
+#
+# Prerequisites already assumed to exist in your root state:
+#   - module.eks          → AWS EKS cluster (aws_eks_cluster)
+#   - module.eks_auth     → or equivalent kubeconfig / cluster endpoint outputs
+#   - AWS Load Balancer Controller installed and running
+#   - An ACM certificate covering var.grafana_hostname
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Provider configuration (root level)
+# -----------------------------------------------------------------------------
+# The Helm and Kubernetes providers must be configured with the EKS cluster
+# endpoint and authentication token before the monitoring module is called.
+# These are typically already present in your root providers.tf — shown here
+# for completeness.
+# -----------------------------------------------------------------------------
+
+# # -----------------------------------------------------------------------------
+# # Monitoring Module
+# # -----------------------------------------------------------------------------
+module "monitoring" {
+  source = "./modules/Monitoring-2"
+
+  providers = {
+    kubernetes = kubernetes
+    helm       = helm
+  }
+
+  namespace     = "monitoring"
+  environment   = var.environment
+  chart_version = "58.2.2"
+
+  grafana_admin_user     = "admin"
+  grafana_admin_password = var.grafana_admin_password
+
+  grafana_hostname     = "grafana.${var.domain_name}"
+  grafana_storage_size = "10Gi"
+
+  prometheus_retention    = "30d"
+  prometheus_storage_size = "50Gi"
+
+  alertmanager_storage_size = "5Gi"
+
+  storage_class_name = "gp2"
+
+  acm_certificate_arn = ""
+  alb_scheme          = "internet-facing"
+  alb_group_name      = "monitoring"
+
+  depends_on = [
+    module.primary_eks,
+    module.primary_argocd
+  ]
+}
+
+# # =============================================================================
+# # root/variables.tf  (additions needed)
+# # =============================================================================
+
+# variable "cluster_name" {
+#   description = "Name of the EKS cluster."
+#   type        = string
+# }
+
+# variable "environment" {
+#   description = "Deployment environment (dev / staging / production)."
+#   type        = string
+# }
+
+# variable "domain_name" {
+#   description = "Base domain name used to construct service hostnames (e.g. example.com)."
+#   type        = string
+# }
+
+# variable "grafana_admin_user" {
+#   description = "Grafana admin username."
+#   type        = string
+#   default     = "admin"
+# }
+
+# variable "grafana_admin_password" {
+#   description = "Grafana admin password. Pass via TF_VAR env var or a secrets backend — never hardcode."
+#   type        = string
+#   sensitive   = true
+# }
+
+# variable "acm_certificate_arn" {
+#   description = "ARN of the ACM certificate that covers the grafana hostname."
+#   type        = string
+# }
+
+# =============================================================================
+# root/outputs.tf  (additions needed)
+# =============================================================================
+
+# output "grafana_url" {
+#   description = "Grafana dashboard URL."
+#   value       = module.monitoring.grafana_url
+# }
+
+# output "grafana_admin_username" {
+#   description = "Grafana admin username."
+#   value       = module.monitoring.grafana_admin_username
+# }
+
+# output "grafana_admin_password" {
+#   description = "Grafana admin password."
+#   value       = module.monitoring.grafana_admin_password
+#   sensitive   = true
+# }
+
+# output "monitoring_namespace" {
+#   description = "Kubernetes namespace for monitoring components."
+#   value       = module.monitoring.monitoring_namespace
+# }
+
+# # =============================================================================
+# # root/terraform.tfvars  (example — DO NOT commit real passwords to Git)
+# # =============================================================================
+# # cluster_name           = "my-eks-cluster"
+# # environment            = "production"
+# # domain_name            = "example.com"
+# # grafana_admin_user     = "admin"
+# # acm_certificate_arn    = "arn:aws:acm:us-east-1:123456789012:certificate/xxxx"
+# #
+# # grafana_admin_password is intentionally omitted here.
+# # Supply it via environment variable:
+# #   export TF_VAR_grafana_admin_password="<secure-password>"
+# # or via a secrets backend integration (AWS Secrets Manager, Vault, etc.)

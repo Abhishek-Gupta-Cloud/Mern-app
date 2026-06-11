@@ -111,3 +111,23 @@ output "argocd_admin_password" {
   value       = try(module.primary_argocd.admin_password, "")
   sensitive   = true
 }
+# output "grafana_url" {
+# #   description = "Grafana dashboard URL."
+# #   value       = module.monitoring.grafana_url
+# # }
+
+# # output "grafana_admin_username" {
+# #   description = "Grafana admin username."
+# #   value       = module.monitoring.grafana_admin_username
+# # }
+
+# # output "grafana_admin_password" {
+# #   description = "Grafana admin password."
+# #   value       = module.monitoring.grafana_admin_password
+# #   sensitive   = true
+# # }
+
+# # output "monitoring_namespace" {
+# #   description = "Kubernetes namespace for monitoring components."
+# #   value       = module.monitoring.monitoring_namespace
+# # }

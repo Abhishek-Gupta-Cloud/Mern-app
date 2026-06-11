@@ -178,7 +178,7 @@ variable "enable_kubernetes_monitoring" {
 variable "monitoring_storage_class_name" {
   description = "Storage class used for Prometheus, Grafana, and Alertmanager persistent volumes"
   type        = string
-  default     = "gp3"
+  default     = "gp2"
 }
 
 variable "grafana_persistence_size" {
@@ -234,3 +234,35 @@ variable "argocd_hostname" {
   type        = string
   default     = ""
 }
+
+# variable "cluster_name" {
+#   description = "Name of the EKS cluster."
+#   type        = string
+# }
+
+# variable "environment" {
+#   description = "Deployment environment (dev / staging / production)."
+#   type        = string
+# }
+
+# variable "domain_name" {
+#   description = "Base domain name used to construct service hostnames (e.g. example.com)."
+#   type        = string
+# }
+
+variable "grafana_admin_user" {
+  description = "Grafana admin username."
+  type        = string
+  default     = "admin"
+}
+
+variable "grafana_admin_password" {
+  description = "Grafana admin password. Pass via TF_VAR env var or a secrets backend — never hardcode."
+  type        = string
+  sensitive   = true
+}
+
+# variable "acm_certificate_arn" {
+#   description = "ARN of the ACM certificate that covers the grafana hostname."
+#   type        = string
+# }

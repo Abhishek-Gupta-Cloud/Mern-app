@@ -1,25 +1,25 @@
-# # resource "kubernetes_manifest" "argocd_project" {
-# #   manifest = {
-# #     apiVersion = "argoproj.io/v1alpha1"
-# #     kind       = "AppProject"
-# #     metadata = {
-# #       name      = "mern-app"
-# #       namespace = var.namespace
-# #     }
-# #     spec = {
-# #       description = "Project for MERN microservices"
-# #       destinations = [
-# #         {
-# #           namespace = "*"
-# #           server    = "https://kubernetes.default.svc"
-# #         }
-# #       ]
-# #       sourceRepos = [var.git_repo_url]
-# #     }
-# #   }
+# resource "kubernetes_manifest" "argocd_project" {
+#   manifest = {
+#     apiVersion = "argoproj.io/v1alpha1"
+#     kind       = "AppProject"
+#     metadata = {
+#       name      = "mern-app"
+#       namespace = var.namespace
+#     }
+#     spec = {
+#       description = "Project for MERN microservices"
+#       destinations = [
+#         {
+#           namespace = "*"
+#           server    = "https://kubernetes.default.svc"
+#         }
+#       ]
+#       sourceRepos = [var.git_repo_url]
+#     }
+#   }
 
-# #   depends_on = [helm_release.argocd]
-# # }
+#   depends_on = [helm_release.argocd]
+# }
 
 # locals {
 #   apps = {
@@ -52,7 +52,7 @@
 #       }
 #       destination = {
 #         server    = "https://kubernetes.default.svc"
-#         namespace = "default"
+#         namespace = "mern-app"
 #       }
 #       syncPolicy = {
 #         automated = {

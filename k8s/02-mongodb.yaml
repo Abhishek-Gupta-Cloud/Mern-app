@@ -92,3 +92,15 @@ spec:
       resources:
         requests:
           storage: 20Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secret
+  namespace: mern-app
+type: Opaque
+stringData:
+  MONGO_ROOT_USER: admin
+  MONGO_ROOT_PASSWORD: admin123
+  MONGO_DB: mernapp
