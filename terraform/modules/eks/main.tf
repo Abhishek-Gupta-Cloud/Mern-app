@@ -423,72 +423,72 @@ resource "aws_cloudwatch_log_group" "eks_cluster" {
   })
 }
 
-# Application Load Balancer
-resource "aws_lb" "main" {
-  count              = var.enable_ingress ? 1 : 0
-  name_prefix        = "alb-"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb[0].id]
-  subnets            = aws_subnet.public[*].id
+# # Application Load Balancer
+# resource "aws_lb" "main" {
+#   count              = var.enable_ingress ? 1 : 0
+#   name_prefix        = "alb-"
+#   internal           = false
+#   load_balancer_type = "application"
+#   security_groups    = [aws_security_group.alb[0].id]
+#   subnets            = aws_subnet.public[*].id
 
-  enable_deletion_protection = false
+#   enable_deletion_protection = false
 
-  tags = merge(var.tags, {
-    Name = "${var.cluster_name}-alb"
-  })
-}
+#   tags = merge(var.tags, {
+#     Name = "${var.cluster_name}-alb"
+#   })
+# }
 
-resource "aws_security_group" "alb" {
-  count       = var.enable_ingress ? 1 : 0
-  name_prefix = "${var.cluster_name}-alb-"
-  vpc_id      = aws_vpc.main.id
+# resource "aws_security_group" "alb" {
+#   count       = var.enable_ingress ? 1 : 0
+#   name_prefix = "${var.cluster_name}-alb-"
+#   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   ingress {
+#     from_port   = 80
+#     to_port     = 80
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   ingress {
+#     from_port   = 443
+#     to_port     = 443
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   egress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  tags = merge(var.tags, {
-    Name = "${var.cluster_name}-alb-sg"
-  })
-}
-data "aws_iam_policy_document" "ebs_csi_assume_role" {
-  statement {
-    effect = "Allow"
+#   tags = merge(var.tags, {
+#     Name = "${var.cluster_name}-alb-sg"
+#   })
+# }
+# data "aws_iam_policy_document" "ebs_csi_assume_role" {
+#   statement {
+#     effect = "Allow"
 
-    actions = [
-      "sts:AssumeRoleWithWebIdentity"
-    ]
+#     actions = [
+#       "sts:AssumeRoleWithWebIdentity"
+#     ]
 
-    principals {
-      type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.cluster.arn]
-    }
+#     principals {
+#       type        = "Federated"
+#       identifiers = [aws_iam_openid_connect_provider.cluster.arn]
+#     }
 
-    condition {
-      test     = "StringEquals"
-      variable = "${replace(aws_iam_openid_connect_provider.cluster.url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
-    }
-  }
-}
+#     condition {
+#       test     = "StringEquals"
+#       variable = "${replace(aws_iam_openid_connect_provider.cluster.url, "https://", "")}:sub"
+#       values   = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+#     }
+#   }
+# }
 resource "aws_eks_addon" "ebs_csi" {
   cluster_name             = aws_eks_cluster.main.name
   addon_name               = "aws-ebs-csi-driver"
